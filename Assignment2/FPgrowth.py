@@ -1,5 +1,6 @@
 import sys
 from database import Database #unclear why database import is not working
+# JO: on my end this import works fine
 
 
 file_name = sys.argv[1] #this is the file path we will be opening
@@ -22,6 +23,7 @@ def table():
     #up to here we should be able to get the first l table, and from there it would be possible to start the tree
 
 #we need at least the l1 table, so that's the purpose of this whole thing 
+# JO: We should tweak this so that it is a make_header_table function. All that requires is sorting
 def make_l_table(c_table:dict[frozenset, int], previous_l_table:dict[frozenset, int]):
     l_table: dict[frozenset, int] = {}
     for item in c_table:

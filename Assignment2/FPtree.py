@@ -1,57 +1,29 @@
-class Nodes:
-    
-    def __init__(self,name,value,isRoot):
-        self.value = None
-        self.name = name
-        self.value=value
-        self.isRoot=isRoot
-        self.parent=None
-        self.link_in=None
-        self.link_out=None
+from database import Database
+from node import Node
 
-        self.children=[]
+class FPtree:
 
-    def set_root(self,state):
-       self.isRoot=state
+    def __init__(self, headerTable = None):
+        self.root = None
+        # JO: Header table is here, Hyperlinks are in the nodes through link_in and link_out
+        # The reason header table is optional is because the little trees we recursively build
+        # won't need it.
+        self.headerTable:dict[frozenset, int, Node] = headerTable if headerTable is not None else {}
+        # JO: The structure of header table is like the l_tables from the previous assignment,
+        # with the difference being it contains the hyperlink information (The Node that is the
+        # first of that item in the tree)
 
-    def set_parent(self, parent):   
-        self.parent = parent
-    
-    def get_parent(self):
-        return self.parent
-    
-    def set_child(self, child):
-        child.set_parent(self)
-        self.children.append(child)
 
-    def get_child(self): #this one is confusing me, cause we will need to be able to have a parent node that can hold many children... gonna think more about it
-        # MO: i think i fixed it, the root will have many children in alist while a child will only have one
-        return self.children
-    
-    def set_value(self, value):
-        self.value = value
+    def buildTree(self, database: Database, minsup):
+        self.root = Node("Root", 0, True)
+        # Root is empty, then we check database.
+        # For each element in our header table, we check if it is in the transaction, if it is
+        # we then add it to the tree as needed. I will make this a seperate method probably.
+        for transaction in database.transactions:
+            for item in self.headerTable:
+                if item.issubset(transaction): # JO: I think this works with frozensets
+                    self.addToTree(item)
 
-    def get_value(self):
-        return self.value
+        return self.root
     
-    def set_name(self, name):
-        self.name = name
-
-    def get_name(self):
-        return self.name
-    
-    def set_linkIn(self, link_in):
-        self.link_in = link_in
-
-    def get_linkIn(self):
-        return self.link_in
-    
-    def set_linkOut(self, link_out):
-        self.link_out = link_out
-
-    def get_linkOut(self):
-        return self.link_out
-    
-    def buildTree(self):
-        return None #just to have something and not break the file
-        #some sort of loop is necessary
+    def addToTree(self, item:frozenset):
