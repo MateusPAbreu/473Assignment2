@@ -1,14 +1,14 @@
 class Node:
 
-    def __init__(self, name, value = None, isRoot = False): # JO: added default values
+    def __init__(self, name:frozenset, value = None, isRoot = False): # JO: added default values
         self.name = name
         self.value = value
         self.isRoot = isRoot
         self.parent = None
-        self.link_in = None
-        self.link_out = None
+        self.link_in: Node = None
+        self.link_out: Node = None
 
-        self.children = []
+        self.children: list[Node] = []
 
     def set_root(self, state):
        self.isRoot = state
@@ -19,22 +19,22 @@ class Node:
     def get_parent(self):
         return self.parent
     
-    def set_child(self, child):
+    def set_child(self, child: "Node"): # JO: weird looking, python allows 'type hinting' to reference the same class.
         child.set_parent(self)
         self.children.append(child)
 
-    def get_child(self): #this one is confusing me, cause we will need to be able to have a parent node that can hold many children... gonna think more about it
+    def get_children(self): #this one is confusing me, cause we will need to be able to have a parent node that can hold many children... gonna think more about it
         # MO: i think i fixed it, the root will have many children in alist while a child will only have one
         # JO: each child might also have many children, so they should return a list too.
         return self.children
     
-    def set_value(self, value):
+    def set_value(self, value:int):
         self.value = value
 
     def get_value(self):
         return self.value
     
-    def set_name(self, name):
+    def set_name(self, name:frozenset):
         self.name = name
 
     def get_name(self):
