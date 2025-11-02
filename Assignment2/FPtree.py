@@ -16,6 +16,10 @@ class FPtree:
         # so we are more likely to iterate through header table items. Probably using for each.
 
 
+    # JO: I built this with constructing the first FP tree in mind, it probably isn't gonna work to build
+    # all the little trees recursively. We could modify it to make the database optional and then do checks
+    # inside to see if we are building the main tree or a conditional tree, or we could just make a new
+    # method for building the smaller trees (this is what I suggest).
     def buildTree(self, database: Database, minsup):
         self.root = Node("Root", 0, True)
         # Root is empty, then we check database.
