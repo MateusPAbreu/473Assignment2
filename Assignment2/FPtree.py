@@ -1,46 +1,57 @@
 class Nodes:
     
-    def __init__(self):
-        self._root_value = None
-        self._root_name = "Root"
+    def __init__(self,name,value,isRoot):
+        self.value = None
+        self.name = name
+        self.value=value
+        self.isRoot=isRoot
+        self.parent=None
+        self.link_in=None
+        self.link_out=None
 
+        self.children=[]
+
+    def set_root(self,state):
+       self.isRoot=state
 
     def set_parent(self, parent):   
-        self._parent = parent
+        self.parent = parent
     
     def get_parent(self):
-        return self._parent
+        return self.parent
     
     def set_child(self, child):
-        self._child = child
+        child.set_parent(self)
+        self.children.append(child)
 
     def get_child(self): #this one is confusing me, cause we will need to be able to have a parent node that can hold many children... gonna think more about it
-        return self._child
+        # MO: i think i fixed it, the root will have many children in alist while a child will only have one
+        return self.children
     
     def set_value(self, value):
-        self._value = value
+        self.value = value
 
     def get_value(self):
-        return self._value
+        return self.value
     
     def set_name(self, name):
-        self._name = name
+        self.name = name
 
     def get_name(self):
-        return self._name
+        return self.name
     
     def set_linkIn(self, link_in):
-        self._link_in = link_in
+        self.link_in = link_in
 
     def get_linkIn(self):
-        return self._link_in
+        return self.link_in
     
     def set_linkOut(self, link_out):
-        self._link_out = link_out
+        self.link_out = link_out
 
     def get_linkOut(self):
-        return self._link_out
+        return self.link_out
     
-    def buildTree():
+    def buildTree(self):
         return None #just to have something and not break the file
         #some sort of loop is necessary
