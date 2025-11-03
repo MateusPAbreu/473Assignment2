@@ -1,10 +1,10 @@
 # CPSC473_a2_Mojoma_Rockets
 This is a repository to track code changes for the FP-Growth Algorithm for frequent pattern mining on a transaction databases. It identifies frequent itemsets that meet a user indicated minimum support threshold. 
 
-# Course #: CPSC 473- Introduction to Data Mining
-# School #: University Of Northern British Columbia(UNBC)
-# Semester # : Fall 2025
-# Assignment 2 #
+## Course : CPSC 473- Introduction to Data Mining
+## School : University Of Northern British Columbia(UNBC)
+## Semester  : Fall 2025
+## Assignment 2 
 
 ### Team Members
 1. **Josh Holuboch**
