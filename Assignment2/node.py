@@ -10,6 +10,9 @@ class Node:
 
         self.children: list[Node] = []
 
+    def __str__(self):
+        return "Node(" + str(self.name) + ", " + str(self.value) + ")"
+
     def set_root(self, state):
        self.isRoot = state
 

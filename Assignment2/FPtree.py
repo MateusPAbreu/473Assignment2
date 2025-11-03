@@ -8,19 +8,22 @@ class FPtree:
         # JO: Header table is here, Hyperlinks are in the nodes through link_in and link_out
         # The reason header table is optional is because the little trees we recursively build
         # won't need it.
-        self.headerTable:dict[frozenset, tuple[int, Node]] = headerTable if headerTable is not None else {}
+        self.header_table:dict[frozenset, tuple[int, Node]] = headerTable if headerTable is not None else {}
         # JO: The structure of header table is like the l_tables from the previous assignment,
         # with the difference being it contains the hyperlink information (The Node that is the
         # first of that item in the tree) bundled with the count in a tuple. 
         # Ex: to get item a's count, you do headerTable[frozenset(['a'])][0]. This is ugly though,
         # so we are more likely to iterate through header table items. Probably using for each.
 
+    def __str__ (self):
+        return "Header table: " + str(self.header_table) + "\nRoot: " + str(self.root) + \
+        "\nChildren: " + ", ".join([str(child) for child in self.root.get_children()])
 
     # JO: I built this with constructing the first FP tree in mind, it probably isn't gonna work to build
     # all the little trees recursively. We could modify it to make the database optional and then do checks
     # inside to see if we are building the main tree or a conditional tree, or we could just make a new
     # method for building the smaller trees (this is what I suggest).
-    def buildTree(self, database: Database, minsup):
+    def build_tree(self, database: Database):
         self.root = Node("Root", 0, True)
         # Root is empty, then we check database.
         # For each element in our header table, we check if it is in the transaction, if it is
@@ -29,7 +32,7 @@ class FPtree:
         # then the next item you add is added as a child of the previous element added, until the
         # transaction is done.
         for transaction in database.transactions:
-            for item in self.headerTable:
+            for item in self.header_table:
                 if item.issubset(transaction): 
                     for child in self.root.get_children():
                         if child.get_name() == item:
@@ -39,11 +42,11 @@ class FPtree:
                             newNode = Node(item, 1)
                             self.root.set_child(newNode)
                             # Now we need to update the header table to add this new node's hyperlink
-                            if self.headerTable[item][1] is None: # no hyperlink
-                                self.headerTable[item] = (self.headerTable[item][0], newNode)
+                            if self.header_table[item][1] is None: # no hyperlink
+                                self.header_table[item] = (self.header_table[item][0], newNode)
                             else:
                                 # There are already hyperlinks, so we need to traverse to the end and add it
-                                currentNode = self.headerTable[item][1]
+                                currentNode = self.header_table[item][1]
                                 while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
                                     currentNode = currentNode.get_linkOut()
                                 currentNode.set_linkOut(newNode)
@@ -53,4 +56,27 @@ class FPtree:
         # information and it just feels worse.
 
         return self.root
+    
+
+    # JO: Made more sense to have the header table creation inside the FPtree class. This does basically
+    # the same thing as the previous assignment, then just changes the structure to fit the header table.
+    def make_header_table(self, database: Database, min_sup: int):
+        # Code from last assignment, makes a c table
+        c_table:dict[frozenset, int] = {}
+        for transaction in database.transactions:
+            for item in transaction:
+                key = frozenset([item])
+                c_table[key] = c_table.get(key, 0) + 1
+
+        # Code from last assignment, makes l table from c table
+        l_table: dict[frozenset, int] = {}
+        for item in c_table:
+            if (c_table[item] >= min_sup):
+                l_table[item] = c_table[item]
+
+        # Now we need to convert l_table to header table
+        l_table = sorted(l_table.items(), key=lambda x: x[1], reverse=True) # I've used this in other assignments,
+            # but it basically just sorts l table in reverse order based on the count (which is specified through the key)
+        for item in l_table:
+            self.header_table[item] = (l_table[item], None) # None is placeholder for hyperlink Node
     
