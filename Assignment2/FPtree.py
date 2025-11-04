@@ -2,7 +2,6 @@ from database import Database
 from node import Node
 
 class FPtree:
-
     def __init__(self, headerTable = None):
         self.root = None
         # JO: Header table is here, Hyperlinks are in the nodes through link_in and link_out
@@ -16,14 +15,15 @@ class FPtree:
         # so we are more likely to iterate through header table items. Probably using for each.
 
     def __str__ (self):
-        return "Header table: " + str(self.header_table) + "\nRoot: " + str(self.root) + \
-        "\nChildren: " + ", ".join([str(child) for child in self.root.get_children()])
+        return "Header table: \n" + "\n".join([str(set(item)) +"| "+str(self.header_table[item][0])+ ", "+ str(self.header_table[item][1]) for item in self.header_table]) + \
+        "\nChildren: \n" + "\n".join([str(child) for child in self.root.get_children()])
 
     # JO: I built this with constructing the first FP tree in mind, it probably isn't gonna work to build
     # all the little trees recursively. We could modify it to make the database optional and then do checks
     # inside to see if we are building the main tree or a conditional tree, or we could just make a new
     # method for building the smaller trees (this is what I suggest).
     def build_tree(self, database: Database):
+        print("Build tree called")
         self.root = Node("Root", 0, True)
         # Root is empty, then we check database.
         # For each element in our header table, we check if it is in the transaction, if it is
@@ -32,25 +32,37 @@ class FPtree:
         # then the next item you add is added as a child of the previous element added, until the
         # transaction is done.
         for transaction in database.transactions:
+            print("Processing transaction: " + str(transaction))
             for item in self.header_table:
+                print("Checking item: " + str(set(item)))
                 if item.issubset(transaction): 
-                    for child in self.root.get_children():
-                        if child.get_name() == item:
-                            child.set_value(child.get_value() + 1)
-                            break # don't need to keep looking
-                        else:
-                            newNode = Node(item, 1)
-                            self.root.set_child(newNode)
-                            # Now we need to update the header table to add this new node's hyperlink
-                            if self.header_table[item][1] is None: # no hyperlink
-                                self.header_table[item] = (self.header_table[item][0], newNode)
+                    print("Item is in transaction")
+                    if(self.root.get_children() == []): # no children yet
+                        print("Empty children array, adding " + str(set(item)))
+                        newNode = Node(item, 1)
+                        self.root.set_child(newNode)
+                        self.header_table[item] = (self.header_table[item][0], newNode)
+                    else:
+                        for child in self.root.get_children():
+                            print("Checking child: " + str(child))
+                            if child.get_name() == item:
+                                print("Item found in children, incrementing value")
+                                child.set_value(child.get_value() + 1)
+                                break # don't need to keep looking
                             else:
-                                # There are already hyperlinks, so we need to traverse to the end and add it
-                                currentNode = self.header_table[item][1]
-                                while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
-                                    currentNode = currentNode.get_linkOut()
-                                currentNode.set_linkOut(newNode)
-                                newNode.set_linkIn(currentNode)
+                                print("Item not found in children, adding new node")
+                                newNode = Node(item, 0) # JO: We start it at count 0 because it will immediately check itself, incrementing the count.
+                                self.root.set_child(newNode)
+                                # Now we need to update the header table to add this new node's hyperlink
+                                if self.header_table[item][1] is None: # no hyperlink
+                                    self.header_table[item] = (self.header_table[item][0], newNode)
+                                else:
+                                    # There are already hyperlinks, so we need to traverse to the end and add it
+                                    currentNode = self.header_table[item][1]
+                                    while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
+                                        currentNode = currentNode.get_linkOut()
+                                    currentNode.set_linkOut(newNode)
+                                    newNode.set_linkIn(currentNode)
         # This is pretty nested and yucky, if you can think of a nicer way to refactor, go for it.
         # Could break it into helper methods, like I was gonna with addToTree, but then you have to pass around
         # information and it just feels worse.
@@ -61,6 +73,7 @@ class FPtree:
     # JO: Made more sense to have the header table creation inside the FPtree class. This does basically
     # the same thing as the previous assignment, then just changes the structure to fit the header table.
     def make_header_table(self, database: Database, min_sup: int):
+        print("Header table create called")
         # Code from last assignment, makes a c table
         c_table:dict[frozenset, int] = {}
         for transaction in database.transactions:
@@ -75,8 +88,10 @@ class FPtree:
                 l_table[item] = c_table[item]
 
         # Now we need to convert l_table to header table
-        l_table = sorted(l_table.items(), key=lambda x: x[1], reverse=True) # I've used this in other assignments,
+        l_table = dict(sorted(l_table.items(), key=lambda x: x[1], reverse=True)) # I've used this in other assignments,
             # but it basically just sorts l table in reverse order based on the count (which is specified through the key)
+        
         for item in l_table:
             self.header_table[item] = (l_table[item], None) # None is placeholder for hyperlink Node
+        
     

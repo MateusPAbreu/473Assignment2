@@ -14,6 +14,7 @@ def main():
     global min_sup
     min_sup = int(data.size * sup_percent) #amount of items * sup_percent -> MST
 
+    print("Running main")
     # JO: testing the changes I made
     fp_tree = FPtree()
     fp_tree.make_header_table(data, min_sup) # must do this before the build_tree call
@@ -27,3 +28,6 @@ def main():
     #in all honesty, I am unclear in how we are supposed to find which items are connected to other items without making more scans of the database
     # JO: We can do it by following the header table hyperlinks, to build the smaller trees, then we just need to store
     # the frequent patterns, and find a way to do it recursively.
+
+if __name__ == "__main__":
+    main()
