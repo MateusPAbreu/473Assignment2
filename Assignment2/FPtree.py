@@ -14,9 +14,21 @@ class FPtree:
         # Ex: to get item a's count, you do headerTable[frozenset(['a'])][0]. This is ugly though,
         # so we are more likely to iterate through header table items. Probably using for each.
 
+    def str_helper(self, node:Node , children_string:str):
+        if (not node.get_children() == []):
+            for child in node.get_children():
+                children_string += str(child) + "  " 
+            children_string += "\n"
+            for child in node.get_children():
+                children_string = self.str_helper(child, children_string)
+
+        return children_string
+
     def __str__ (self):
-        return "Header table: \n" + "\n".join([str(set(item)) +"| "+str(self.header_table[item][0])+ ", "+ str(self.header_table[item][1]) for item in self.header_table]) + \
-        "\nChildren: \n" + "\n".join([str(child) for child in self.root.get_children()])
+        header_table_string = "Header table: \n" + "\n".join([str(set(item)) +"| "+str(self.header_table[item][0])+ ", "+ str(self.header_table[item][1]) for item in self.header_table])
+        children_string = "\n[ROOT] \n" 
+        children_string = self.str_helper(self.root, children_string)
+        return header_table_string + children_string
 
     # JO: I built this with constructing the first FP tree in mind, it probably isn't gonna work to build
     # all the little trees recursively. We could modify it to make the database optional and then do checks
