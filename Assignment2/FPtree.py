@@ -33,40 +33,46 @@ class FPtree:
         # transaction is done.
         for transaction in database.transactions:
             print("Processing transaction: " + str(transaction))
+            current_root = self.root # JO: I think the issue is this update needs to go somewhere else
             for item in self.header_table:
                 print("Checking item: " + str(set(item)))
                 if item.issubset(transaction): 
                     print("Item is in transaction")
-                    if(self.root.get_children() == []): # no children yet
+                    if(current_root.get_children() == []): # no children yet
                         print("Empty children array, adding " + str(set(item)))
-                        newNode = Node(item, 1)
-                        self.root.set_child(newNode)
-                        self.header_table[item] = (self.header_table[item][0], newNode)
+                        new_node = Node(item, 1)
+                        current_root.set_child(new_node)
+                        self.header_table[item] = (self.header_table[item][0], new_node)
+                        current_root = new_node
+                        print ("Current root is now " + str(current_root))
                     else:
                         child_found = False
-                        for child in self.root.get_children():
-                            print("Checking child: " + str(child))
-                            print("Child name: " + str(child.get_name()) + ", Item: " + str(item))
-                            if child.get_name() == item:
-                                print("Item found in children, incrementing value")
-                                child_found = True
-                                child.set_value(child.get_value() + 1)
-                                break # don't need to keep looking
+                        print("Searching current root: " + str(current_root))
+                        for child in current_root.get_children():
+                            if not child_found:
+                                print("Checking child: " + str(child))
+                                print("Child name: " + str(child.get_name()) + ", Item: " + str(item))
+                                if child.get_name() == item:
+                                    print("Item found in children, incrementing value, current root is now " + str(child))
+                                    current_root = child 
+                                    child_found = True
+                                    child.set_value(child.get_value() + 1)
 
                         if not child_found:
                             print("Item not found in children, adding new node")
                             newNode = Node(item, 1)
-                            self.root.set_child(newNode)
-                        # Now we need to update the header table to add this new node's hyperlink
-                        if self.header_table[item][1] is None: # no hyperlink
-                            self.header_table[item] = (self.header_table[item][0], newNode)
-                        else:
-                            # There are already hyperlinks, so we need to traverse to the end and add it
-                            currentNode = self.header_table[item][1]
-                            while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
-                                currentNode = currentNode.get_linkOut()
-                            currentNode.set_linkOut(newNode)
-                            newNode.set_linkIn(currentNode)
+                            current_root.set_child(newNode)
+                            # Now we need to update the header table to add this new node's hyperlink
+                            if self.header_table[item][1] is None: # no hyperlink
+                                self.header_table[item] = (self.header_table[item][0], newNode)
+                            else:
+                                # There are already hyperlinks, so we need to traverse to the end and add it
+                                currentNode = self.header_table[item][1]
+                                while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
+                                    print("Traversing hyperlink from node: " + str(currentNode))
+                                    currentNode = currentNode.get_linkOut()
+                                currentNode.set_linkOut(newNode)
+                                newNode.set_linkIn(currentNode)
         # This is pretty nested and yucky, if you can think of a nicer way to refactor, go for it.
         # Could break it into helper methods, like I was gonna with addToTree, but then you have to pass around
         # information and it just feels worse.
