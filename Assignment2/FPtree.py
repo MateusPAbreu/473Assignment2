@@ -43,26 +43,30 @@ class FPtree:
                         self.root.set_child(newNode)
                         self.header_table[item] = (self.header_table[item][0], newNode)
                     else:
+                        child_found = False
                         for child in self.root.get_children():
                             print("Checking child: " + str(child))
+                            print("Child name: " + str(child.get_name()) + ", Item: " + str(item))
                             if child.get_name() == item:
                                 print("Item found in children, incrementing value")
+                                child_found = True
                                 child.set_value(child.get_value() + 1)
                                 break # don't need to keep looking
-                            else:
-                                print("Item not found in children, adding new node")
-                                newNode = Node(item, 0) # JO: We start it at count 0 because it will immediately check itself, incrementing the count.
-                                self.root.set_child(newNode)
-                                # Now we need to update the header table to add this new node's hyperlink
-                                if self.header_table[item][1] is None: # no hyperlink
-                                    self.header_table[item] = (self.header_table[item][0], newNode)
-                                else:
-                                    # There are already hyperlinks, so we need to traverse to the end and add it
-                                    currentNode = self.header_table[item][1]
-                                    while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
-                                        currentNode = currentNode.get_linkOut()
-                                    currentNode.set_linkOut(newNode)
-                                    newNode.set_linkIn(currentNode)
+
+                        if not child_found:
+                            print("Item not found in children, adding new node")
+                            newNode = Node(item, 1)
+                            self.root.set_child(newNode)
+                        # Now we need to update the header table to add this new node's hyperlink
+                        if self.header_table[item][1] is None: # no hyperlink
+                            self.header_table[item] = (self.header_table[item][0], newNode)
+                        else:
+                            # There are already hyperlinks, so we need to traverse to the end and add it
+                            currentNode = self.header_table[item][1]
+                            while currentNode.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
+                                currentNode = currentNode.get_linkOut()
+                            currentNode.set_linkOut(newNode)
+                            newNode.set_linkIn(currentNode)
         # This is pretty nested and yucky, if you can think of a nicer way to refactor, go for it.
         # Could break it into helper methods, like I was gonna with addToTree, but then you have to pass around
         # information and it just feels worse.
