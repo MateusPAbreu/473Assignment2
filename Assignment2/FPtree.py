@@ -30,6 +30,20 @@ class FPtree:
         children_string = self.str_helper(self.root, children_string)
         return header_table_string + children_string
 
+    def connect_hyperlinks(self, node: Node):
+        item = node.name
+        if self.header_table[item][1] is None: # no hyperlink
+            self.header_table[item] = (self.header_table[item][0], node)
+        else:
+            # There are already hyperlinks, so we need to traverse to the end and add it
+            current_node = self.header_table[item][1]
+            print(str(current_node))
+            print(str(current_node.get_linkOut()))
+            while current_node.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
+                current_node = current_node.get_linkOut()
+            current_node.set_linkOut(node)
+            node.set_linkIn(current_node)
+
     # JO: I built this with constructing the first FP tree in mind, it probably isn't gonna work to build
     # all the little trees recursively. We could modify it to make the database optional and then do checks
     # inside to see if we are building the main tree or a conditional tree, or we could just make a new
@@ -51,6 +65,7 @@ class FPtree:
                         current_root.set_child(new_node)
                         self.header_table[item] = (self.header_table[item][0], new_node)
                         current_root = new_node
+                        self.connect_hyperlinks(new_node)
                     else:
                         child_found = False
                         for child in current_root.get_children():
@@ -64,16 +79,8 @@ class FPtree:
                             new_node = Node(item, 1)
                             current_root.set_child(new_node)
                             current_root = new_node
-                            # Now we need to update the header table to add this new node's hyperlink
-                            if self.header_table[item][1] is None: # no hyperlink
-                                self.header_table[item] = (self.header_table[item][0], new_node)
-                            else:
-                                # There are already hyperlinks, so we need to traverse to the end and add it
-                                current_node = self.header_table[item][1]
-                                while current_node.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
-                                    current_node = current_node.get_linkOut()
-                                current_node.set_linkOut(new_node)
-                                new_node.set_linkIn(current_node)
+                            self.connect_hyperlinks(new_node)
+                    
         # This is pretty nested and yucky, if you can think of a nicer way to refactor, go for it.
         # Could break it into helper methods, like I was gonna with addToTree, but then you have to pass around
         # information and it just feels worse.
@@ -83,7 +90,7 @@ class FPtree:
 
     # JO: Made more sense to have the header table creation inside the FPtree class. This does basically
     # the same thing as the previous assignment, then just changes the structure to fit the header table.
-    def make_header_table(self, database: Database, min_sup: int):
+    def build_table(self, database: Database, min_sup: int):
         # Code from last assignment, makes a c table
         c_table:dict[frozenset, int] = {}
         for transaction in database.transactions:
@@ -104,4 +111,76 @@ class FPtree:
         for item in l_table:
             self.header_table[item] = (l_table[item], None) # None is placeholder for hyperlink Node
         
+    # This method doesn't work perfectly yet, it is highly couple with the build_projected_tree method
+    # to accomplish any work. This is because it doesn't do any pruning in this method, it just grabs
+    # every single count of all seen items and adds them to a header table. Pruning shouuuuld happen in this
+    # method, then the build_projected_tree method should be refactored. 
+    def build_projected_table(node:Node):
+        current_link = node
+        itemset_headertable: dict[frozenset, tuple[int, Node]] = {}
+        # Make a little header table for each itemset
+        while current_link is not None:
+            current_node = current_link
+            while not current_node.parent.isRoot:
+                current_node = current_node.parent
+                print("-working with " + str(current_node))
+                if (current_node.name not in itemset_headertable):
+                    itemset_headertable[current_node.name] = (1, None)
+                else:
+                    itemset_headertable[current_node.name] = ((itemset_headertable[current_node.name][0] + 1), None)
+            print("  Current link is "+ str(current_link) + ", link out is " + str(current_link.link_out) + ", link in is " + str(current_link.link_in))
+            current_link = current_link.link_out
+
+        return itemset_headertable
     
+
+    # This method should be refactored to make use of the connect_hyperlinks method, in the exact same way
+    # that build tree does.
+    def build_projected_tree(tree, node:Node, min_sup):
+        temp_stack = []
+        itemset_headertable = tree.header_table
+
+        current_link = node
+        while current_link is not None:
+            current_node = current_link
+            while not current_node.parent.isRoot:
+                temp_node = current_node.parent
+                temp_node.set_value(current_node.get_value())
+                current_node = temp_node
+                if (itemset_headertable[current_node.name][0] > min_sup):
+                    temp_stack.append(current_node)
+            current_link = current_link.link_out
+
+        # Add all of our stack items to a new projected tree
+        current_root = tree.root
+        while(len(temp_stack) > 0):
+            print("adding item " + str(item))
+            item = temp_stack.pop()
+            child_found = False
+            if(current_root.get_children() == []): # no children yet
+                current_root.set_child(item)
+                itemset_headertable[item] = (itemset_headertable[item][0], item)
+                current_root = item
+            else:
+                for child in current_root.get_children():
+                    if child.get_name() == item.get_name():
+                        current_root = child 
+                        child_found = True
+                        child.set_value(child.get_value() + item.get_value())
+
+            if (not child_found):
+                current_root.set_child(item)
+                itemset_headertable[item] = (itemset_headertable[item][0], item)
+                current_root = item
+
+            if itemset_headertable[item][1] is None: # no hyperlink
+                itemset_headertable[item] = (itemset_headertable[item][0], item)
+            else:
+                # There are already hyperlinks, so we need to traverse to the end and add it
+                current_node = itemset_headertable[item][1]
+                while current_node.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
+                    current_node = current_node.get_linkOut()
+                current_node.set_linkOut(item)
+                item.set_linkIn(current_node)
+
+        return FPtree(tree.root, itemset_headertable)
