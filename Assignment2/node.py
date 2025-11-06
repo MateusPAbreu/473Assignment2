@@ -4,14 +4,17 @@ class Node:
         self.name = name
         self.value = value
         self.isRoot = isRoot
-        self.parent = None
+        self.parent : Node = None
         self.link_in: Node = None
         self.link_out: Node = None
 
         self.children: list[Node] = []
 
     def __str__(self):
-        return "Node(" + str(set(self.name)) + ", " + str(self.value) + ")"
+        if (self.isRoot):
+            return "Node( [] )"
+        else:
+            return "Node(" + str(set(self.name)) + ", " + str(self.value) + ")"
 
     def set_root(self, state):
        self.isRoot = state
