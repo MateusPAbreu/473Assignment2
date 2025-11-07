@@ -28,11 +28,11 @@ def main():
     for key in reversed(fp_tree.header_table):
         print("Building projected tree for itemset " + str(set(key)))
         link = fp_tree.header_table[key][1]
-        tree_header = FPtree.build_projected_table(link)
+        tree_header = fp_tree.build_projected_table(link)
         print("    Header table is " + str(tree_header))
-        proj_tree = FPtree(tree_root, tree_header)
+      #  proj_tree = FPtree(tree_root, tree_header) # MO i dont need this because the projected tree method is changed
 
-        proj_tree = FPtree.build_projected_tree(proj_tree, link)
+        proj_tree = fp_tree.build_projected_tree(link, min_sup) # MO: since the projected tree makes a new tree instea dof passing it through main now i chnaged the aprameters
         print(proj_tree)
     
     # When I run this, nothing is printed, but no errors. Might have made a mistake in overriding __str__, 

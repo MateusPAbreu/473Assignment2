@@ -62,10 +62,11 @@ class FPtree:
                 if item.issubset(transaction): 
                     if(current_root.get_children() == []): # no children yet
                         new_node = Node(item, 1)
+                        new_node.parent=current_root
                         current_root.set_child(new_node)
-                        self.header_table[item] = (self.header_table[item][0], new_node)
-                        current_root = new_node
+                       # bugbugbug self.header_table[item] = (self.header_table[item][0], new_node) if this happens befor connect_hyperlinks the condition will fail in the method
                         self.connect_hyperlinks(new_node)
+                        current_root = new_node
                     else:
                         child_found = False
                         for child in current_root.get_children():
@@ -77,6 +78,7 @@ class FPtree:
 
                         if not child_found:
                             new_node = Node(item, 1)
+                            new_node.parent=current_root
                             current_root.set_child(new_node)
                             current_root = new_node
                             self.connect_hyperlinks(new_node)
@@ -115,19 +117,21 @@ class FPtree:
     # to accomplish any work. This is because it doesn't do any pruning in this method, it just grabs
     # every single count of all seen items and adds them to a header table. Pruning shouuuuld happen in this
     # method, then the build_projected_tree method should be refactored. 
-    def build_projected_table(node:Node):
+    def build_projected_table(self,node:Node):
         current_link = node
         itemset_headertable: dict[frozenset, tuple[int, Node]] = {}
         # Make a little header table for each itemset
         while current_link is not None:
             current_node = current_link
+            base_count= current_node.get_value() # this is the actual support amount of the item we are making the projected tree for
             while not current_node.parent.isRoot:
                 current_node = current_node.parent
                 print("-working with " + str(current_node))
+                # i changed this part because when traversing up the tree for a given itemset proj. tree we need to count the basecount of the item not "1"
                 if (current_node.name not in itemset_headertable):
-                    itemset_headertable[current_node.name] = (1, None)
+                    itemset_headertable[current_node.name] = (base_count, None)
                 else:
-                    itemset_headertable[current_node.name] = ((itemset_headertable[current_node.name][0] + 1), None)
+                    itemset_headertable[current_node.name] = ((itemset_headertable[current_node.name][0] + base_count), None) # I also added the base count here
             print("  Current link is "+ str(current_link) + ", link out is " + str(current_link.link_out) + ", link in is " + str(current_link.link_in))
             current_link = current_link.link_out
 
@@ -135,52 +139,96 @@ class FPtree:
     
 
     # This method should be refactored to make use of the connect_hyperlinks method, in the exact same way
+    #MO that is what i am trying to do now
     # that build tree does.
-    def build_projected_tree(tree, node:Node, min_sup):
-        temp_stack = []
-        itemset_headertable = tree.header_table
+    def build_projected_tree(self, node: Node, min_sup: int):
+        # Step 1: Get the items from the node you are checking till the root  it has a format :{'1': (3, None), '2': (5, None), '4': (3, None)}
 
+        conditional_header = self.build_projected_table(node)
+        
+        # Step 2: I am pruning things here
+        filtered_header = {}
+        # i am pattern matching the contents of the headertable and discarding the link because it will be None
+        for item, (count, _) in conditional_header.items():
+            if count >= min_sup:
+                filtered_header[item] = (count, None)
+        
+        # Step 3: Sort by count
+        sorted_items = sorted(filtered_header.keys(), 
+                            key=lambda x: filtered_header[x][0], # i wanted to use a method but goggle suggested a lambda expression
+                            reverse=True) # this makes it organized form highest to lowest, i think itw as used above to vonver to header table
+        
+        sorted_header= {item: filtered_header[item] for item in sorted_items}
+        
+        # Step 4: Create empty projected tree (just to make it easier to think about it, i dont want to mxi it with something)
+        new_root = Node("Root", 0, True)
+        new_tree = FPtree(new_root, sorted_header)
+        
+        # Step 5: Process each occurrence of target item
         current_link = node
         while current_link is not None:
-            current_node = current_link
-            while not current_node.parent.isRoot:
-                temp_node = current_node.parent
-                temp_node.set_value(current_node.get_value())
-                current_node = temp_node
-                if (itemset_headertable[current_node.name][0] > min_sup):
-                    temp_stack.append(current_node)
-            current_link = current_link.link_out
+            # Get the count for this path till the root
+            path_count = current_link.get_value()
+            
+            # Collect p items (bottom-up)
+            p = []
+            parent = current_link.parent
+            while not parent.isRoot:
+                if parent.name in sorted_header:  # if it is a frequent node 
+                    p.append(parent.name) # put it in the list
+                parent = parent.parent
+            
+            # Reverse to get top-down order
+            p.reverse()
+            
+            # Insert this prefix path into new tree
+            self._insert_path(new_tree, p, path_count)
+            
+            # Move to next hyperlinked node
+            current_link = current_link.get_linkOut()
+        
+        return new_tree
 
-        # Add all of our stack items to a new projected tree
-        current_root = tree.root
-        while(len(temp_stack) > 0):
-            print("adding item " + str(item))
-            item = temp_stack.pop()
-            child_found = False
-            if(current_root.get_children() == []): # no children yet
-                current_root.set_child(item)
-                itemset_headertable[item] = (itemset_headertable[item][0], item)
-                current_root = item
-            else:
-                for child in current_root.get_children():
-                    if child.get_name() == item.get_name():
-                        current_root = child 
-                        child_found = True
-                        child.set_value(child.get_value() + item.get_value())
+    # def sort_key(x):
+    #  return filtered_header[x][0]
 
-            if (not child_found):
-                current_root.set_child(item)
-                itemset_headertable[item] = (itemset_headertable[item][0], item)
-                current_root = item
+    def _insert_path(self, tree: FPtree, path: list, count: int):
+    
+        current = tree.root
+        
+        for item in path:
+            # Check if item already exists as child
+            found = False
+            for child in current.get_children():
+                if child.get_name() == item:
+                    # Item exists - add count
+                    child.set_value(child.get_value() + count)
+                    current = child
+                    found = True
+                    break # sorry terry
+            
+            # Item not found  so create new node
+            if not found:
+                new_node = Node(item, count)
+                new_node.parent = current
+                current.set_child(new_node)
+                tree.connect_hyperlinks(new_node)
+                current = new_node
 
-            if itemset_headertable[item][1] is None: # no hyperlink
-                itemset_headertable[item] = (itemset_headertable[item][0], item)
-            else:
-                # There are already hyperlinks, so we need to traverse to the end and add it
-                current_node = itemset_headertable[item][1]
-                while current_node.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
-                    current_node = current_node.get_linkOut()
-                current_node.set_linkOut(item)
-                item.set_linkIn(current_node)
+    def mining(self, stuff:frozenset, min_sup)  :
+        # this method will happen recursively wehere a projected tree will be made
+        patterns=[] # this list will fill the patterns of the frequent itemsets.
+        stuff= frozenset()
+        #stuff is the pattern that we are checking to see if it is a frequent, everytime we make a projected tree for it, if it has not reached the base case of length 0-1 tree we make a new pattern and try again
+         
+        for item in (list(self.header_table.keys())).reverse : # this is a revered list of the header table
+         new_pattern= item.union(stuff)
+         #---> Here i want to add the new pattern to the patterns list because the previosu pattern did not reach the base case and we are checkign the next , perhaps append. ....
+        sup= self.header_table[item][0]
 
-        return FPtree(tree.root, itemset_headertable)
+        new_tree=  self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
+        # if not len(new_tree.header_table.items)  <= 1:  
+        #     # if so the cnew tree should be mined with the new pattern as  the stuff
+        #     # # whatever you result should be added to the lsit of patterns
+        #     # # i hope these kind of help🤔
+        # else:
