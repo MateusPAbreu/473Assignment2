@@ -18,7 +18,7 @@ This is a repository to track code changes for the FP-Growth Algorithm for frequ
 
         ex:
 
-        a. py FPgrowth.py connect.txt 99
+        a. py FPgrowth.py connect.txt 90
 
         b. py FPgrowth.py data.txt 50
 
