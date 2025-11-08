@@ -5,8 +5,6 @@ class FPtree:
     def __init__(self, root = None, headerTable = None):
         self.root = root if root is not None else None
         # JO: Header table is here, Hyperlinks are in the nodes through link_in and link_out
-        # The reason header table is optional is because the little trees we recursively build
-        # won't need it.
         self.header_table:dict[frozenset, tuple[int, Node]] = headerTable if headerTable is not None else {}
         # JO: The structure of header table is like the l_tables from the previous assignment,
         # with the difference being it contains the hyperlink information (The Node that is the
@@ -37,8 +35,6 @@ class FPtree:
         else:
             # There are already hyperlinks, so we need to traverse to the end and add it
             current_node = self.header_table[item][1]
-            print(str(current_node))
-            print(str(current_node.get_linkOut()))
             while current_node.get_linkOut() is not None: # Loop runs while currentNode is not the last hyperlink
                 current_node = current_node.get_linkOut()
             current_node.set_linkOut(node)
@@ -57,14 +53,13 @@ class FPtree:
         # then the next item you add is added as a child of the previous element added, until the
         # transaction is done.
         for transaction in database.transactions:
-            current_root = self.root # JO: I think the issue is this update needs to go somewhere else
+            current_root = self.root 
             for item in self.header_table:
                 if item.issubset(transaction): 
                     if(current_root.get_children() == []): # no children yet
                         new_node = Node(item, 1)
                         new_node.parent=current_root
                         current_root.set_child(new_node)
-                       # bugbugbug self.header_table[item] = (self.header_table[item][0], new_node) if this happens befor connect_hyperlinks the condition will fail in the method
                         self.connect_hyperlinks(new_node)
                         current_root = new_node
                     else:
@@ -113,10 +108,8 @@ class FPtree:
         for item in l_table:
             self.header_table[item] = (l_table[item], None) # None is placeholder for hyperlink Node
         
-    # This method doesn't work perfectly yet, it is highly couple with the build_projected_tree method
-    # to accomplish any work. This is because it doesn't do any pruning in this method, it just grabs
-    # every single count of all seen items and adds them to a header table. Pruning shouuuuld happen in this
-    # method, then the build_projected_tree method should be refactored. 
+    # This method should just build the header table for each projected tree, similar to the other build_table
+    # method but it has different paramaters which = different use case. 
     def build_projected_table(self, node:Node):
         current_link = node
         itemset_headertable: dict[frozenset, tuple[int, Node]] = {}
@@ -144,29 +137,26 @@ class FPtree:
         return itemset_headertable
 
 
-    # This method should be refactored to make use of the connect_hyperlinks method, in the exact same way
-    #MO that is what i am trying to do now
-    # that build tree does.
     def build_projected_tree(self, node: Node, min_sup: int):
         # Step 1: Get the items from the node you are checking till the root  it has a format :{'1': (3, None), '2': (5, None), '4': (3, None)}
 
         conditional_header = self.build_projected_table(node)
         
-        # Step 2: I am pruning things here
+        # Step 2: Prune things here
         filtered_header = {}
-        # i am pattern matching the contents of the headertable and discarding the link because it will be None
+        # Pattern matching the contents of the headertable and discarding the link because it will be None
         for item, (count, _) in conditional_header.items():
             if count >= min_sup:
                 filtered_header[item] = (count, None)
         
         # Step 3: Sort by count
         sorted_items = sorted(filtered_header.keys(), 
-                            key=lambda x: filtered_header[x][0], # i wanted to use a method but goggle suggested a lambda expression
-                            reverse=True) # this makes it organized form highest to lowest, i think itw as used above to vonver to header table
+                            key=lambda x: filtered_header[x][0], # i wanted to use a method but google suggested a lambda expression
+                            reverse=True) # this makes it organized from highest to lowestS
         
         sorted_header= {item: filtered_header[item] for item in sorted_items}
         
-        # Step 4: Create empty projected tree (just to make it easier to think about it, i dont want to mxi it with something)
+        # Step 4: Create empty projected tree (just to make it easier to think about it, i dont want to mix it with something)
         new_root = Node(frozenset(), 0, True)
         new_tree = FPtree(new_root, sorted_header)
         
@@ -195,10 +185,8 @@ class FPtree:
         
         return new_tree
 
-    # def sort_key(x):
-    #  return filtered_header[x][0]
 
-    def _insert_path(self, tree: FPtree, path: list, count: int):
+    def _insert_path(self, tree: "FPtree", path: list, count: int):
     
         current = tree.root
         
@@ -222,24 +210,21 @@ class FPtree:
                 current = new_node
 
     def mining(self, stuff:frozenset, min_sup)  :
-        # this method will happen recursively wehere a projected tree will be made
+        # this method will happen recursively where a projected tree will be made
         patterns=[] # this list will fill the patterns of the frequent itemsets.
         
-        #stuff is the pattern that we are checking to see if it is a frequent, everytime we make a projected tree for it, if it has not reached the base case of length 0-1 tree we make a new pattern and try again
+        # stuff is the pattern that we are checking to see if it is a frequent, everytime we make a projected tree for it, 
+        # if it has not reached the base case of length 0-1 tree we make a new pattern and try again
          
         for item in (reversed((self.header_table))) : # this is a revered list of the header table
          sup= self.header_table[item][0]
          new_pattern= item.union(stuff)
-         patterns.append((new_pattern,sup)) #tupple of the things
-         print("\n\nThe suffix of patterns currently is" + str(new_pattern))
-         print(" \n \nThe frequent patterns so far are: " +str(patterns))
+         patterns.append((new_pattern,sup)) #tuple of the things
          
-         #---> Here i want to add the new pattern to the patterns list because the previosu pattern did not reach the base case and we are checkign the next , perhaps append. ....
+         #---> Here i want to add the new pattern to the patterns list because the previous pattern did not reach the base case and we are checking the next , perhaps append. ....
        
 
-         new_tree=  self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
-
-         print(f"The new tree header size is {len(new_tree.header_table)}" )
+         new_tree = self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
 
          if ( len(new_tree.header_table)>0) :  
 
@@ -249,6 +234,6 @@ class FPtree:
 
         return patterns
            
-        #     # if so the cnew tree should be mined with the new pattern as  the stuff
-        #     # # whatever you result should be added to the lsit of patterns
-        #     # # i hope these kind of help🤔
+        #     if so, the new tree should be mined with the new pattern as" the stuff "
+        #     whatever you result should be added to the list of patterns
+        #     i hope these kind of help🤔
