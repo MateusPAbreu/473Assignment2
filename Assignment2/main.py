@@ -32,6 +32,7 @@ def main():
    
     output_file = f"MiningResult_{file_name}"
     with open(output_file, "w") as file:
+        file.write(f"|FPs| = {len(result)}\n")
         for pattern, support in result:
             file.write(f"{set(pattern)} : {support}\n")
 
