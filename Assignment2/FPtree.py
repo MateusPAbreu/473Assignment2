@@ -49,7 +49,7 @@ class FPtree:
     # inside to see if we are building the main tree or a conditional tree, or we could just make a new
     # method for building the smaller trees (this is what I suggest).
     def build_tree(self, database: Database):
-        self.root = Node("Root", 0, True)
+        self.root = Node(frozenset(), 0, True)
         # Root is empty, then we check database.
         # For each element in our header table, we check if it is in the transaction, if it is
         # we then add it to the tree as needed. This looks like checking the children of root,
@@ -117,26 +117,32 @@ class FPtree:
     # to accomplish any work. This is because it doesn't do any pruning in this method, it just grabs
     # every single count of all seen items and adds them to a header table. Pruning shouuuuld happen in this
     # method, then the build_projected_tree method should be refactored. 
-    def build_projected_table(self,node:Node):
+    def build_projected_table(self, node:Node):
         current_link = node
         itemset_headertable: dict[frozenset, tuple[int, Node]] = {}
-        # Make a little header table for each itemset
+        
+        # Follow hyperlinks to get all occurrences of this item
         while current_link is not None:
-            current_node = current_link
-            base_count= current_node.get_value() # this is the actual support amount of the item we are making the projected tree for
-            while not current_node.parent.isRoot:
-                current_node = current_node.parent
-                print("-working with " + str(current_node))
-                # i changed this part because when traversing up the tree for a given itemset proj. tree we need to count the basecount of the item not "1"
-                if (current_node.name not in itemset_headertable):
+            base_count = current_link.value
+            
+            # Traverse up from current node to root
+            current_node = current_link.parent
+            
+            while current_node is not None and not current_node.isRoot:
+                # Add/update count for this item in the path
+                if current_node.name not in itemset_headertable:
                     itemset_headertable[current_node.name] = (base_count, None)
                 else:
-                    itemset_headertable[current_node.name] = ((itemset_headertable[current_node.name][0] + base_count), None) # I also added the base count here
-            print("  Current link is "+ str(current_link) + ", link out is " + str(current_link.link_out) + ", link in is " + str(current_link.link_in))
+                    old_count = itemset_headertable[current_node.name][0]
+                    itemset_headertable[current_node.name] = (old_count + base_count, None)
+                
+                current_node = current_node.parent
+            
+            # Move to next Node with hyperlink
             current_link = current_link.link_out
 
         return itemset_headertable
-    
+
 
     # This method should be refactored to make use of the connect_hyperlinks method, in the exact same way
     #MO that is what i am trying to do now
@@ -161,7 +167,7 @@ class FPtree:
         sorted_header= {item: filtered_header[item] for item in sorted_items}
         
         # Step 4: Create empty projected tree (just to make it easier to think about it, i dont want to mxi it with something)
-        new_root = Node("Root", 0, True)
+        new_root = Node(frozenset(), 0, True)
         new_tree = FPtree(new_root, sorted_header)
         
         # Step 5: Process each occurrence of target item
@@ -218,25 +224,28 @@ class FPtree:
     def mining(self, stuff:frozenset, min_sup)  :
         # this method will happen recursively wehere a projected tree will be made
         patterns=[] # this list will fill the patterns of the frequent itemsets.
-        stuff= frozenset()
+        
         #stuff is the pattern that we are checking to see if it is a frequent, everytime we make a projected tree for it, if it has not reached the base case of length 0-1 tree we make a new pattern and try again
          
         for item in (reversed((self.header_table))) : # this is a revered list of the header table
          sup= self.header_table[item][0]
          new_pattern= item.union(stuff)
          patterns.append((new_pattern,sup)) #tupple of the things
-         print(" \n \nThe patterns so far are: " +str(patterns))
-         print
+         print("\n\nThe suffix of patterns currently is" + str(new_pattern))
+         print(" \n \nThe frequent patterns so far are: " +str(patterns))
+         
          #---> Here i want to add the new pattern to the patterns list because the previosu pattern did not reach the base case and we are checkign the next , perhaps append. ....
        
 
-        new_tree=  self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
+         new_tree=  self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
 
-        if ( not len(new_tree.header_table)<=1) :  
+         print(f"The new tree header size is {len(new_tree.header_table)}" )
 
-            conditional_patterns= new_tree.mining(new_pattern,min_sup)
+         if ( len(new_tree.header_table)>0) :  
 
-            patterns.append(conditional_patterns)
+             conditional_patterns= new_tree.mining(new_pattern,min_sup)
+
+             patterns.extend(conditional_patterns)
 
         return patterns
            

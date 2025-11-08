@@ -3,6 +3,7 @@ from database import Database #unclear why database import is not working
 # JO: on my end this import works fine
 from FPtree import FPtree
 from node import Node
+import time
 
 file_name = sys.argv[1] #this is the file path we will be opening
 sup = int(sys.argv[2]) #minimum support
@@ -18,13 +19,15 @@ def main():
     global min_sup
     min_sup = int(data.size * sup_percent) #amount of items * sup_percent -> MST
 
+    start_time= time.time()
+
     # JO: testing the changes I made
     fp_tree = FPtree()
     fp_tree.build_table(data, min_sup) # must do this before the build_tree call
     fp_tree.build_tree(data)
     print(fp_tree) # this is to test if things are working, also depends on if I overrode __str__ properly
 
-    tree_root = Node("Root", 0, True)
+    
     for key in reversed(fp_tree.header_table):
         print("Building projected tree for itemset " + str(set(key)))
         link = fp_tree.header_table[key][1]
@@ -37,6 +40,16 @@ def main():
     stuff=frozenset()
     result= fp_tree.mining(stuff, min_sup)
     print("The frequent patterns are : "+str( result ))
+
+    end_time= time.time()
+    elapsed_time= end_time-start_time
+
+    file= open("MiningResult_"+ file_name, "w")
+    file.write(f" |FPs| = {len(result)}\n")
+    for elem in result:
+        file.write(f"{result.index(elem)} : {elem}\n")
+
+    file.close
 
 
 
