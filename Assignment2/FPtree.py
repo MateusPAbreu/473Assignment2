@@ -221,14 +221,25 @@ class FPtree:
         stuff= frozenset()
         #stuff is the pattern that we are checking to see if it is a frequent, everytime we make a projected tree for it, if it has not reached the base case of length 0-1 tree we make a new pattern and try again
          
-        for item in (list(self.header_table.keys())).reverse : # this is a revered list of the header table
+        for item in (reversed((self.header_table))) : # this is a revered list of the header table
+         sup= self.header_table[item][0]
          new_pattern= item.union(stuff)
+         patterns.append((new_pattern,sup)) #tupple of the things
+         print(" \n \nThe patterns so far are: " +str(patterns))
+         print
          #---> Here i want to add the new pattern to the patterns list because the previosu pattern did not reach the base case and we are checkign the next , perhaps append. ....
-        sup= self.header_table[item][0]
+       
 
         new_tree=  self.build_projected_tree(self.header_table[item][1],min_sup) # this is building the tree for
-        # if not len(new_tree.header_table.items)  <= 1:  
+
+        if ( not len(new_tree.header_table)<=1) :  
+
+            conditional_patterns= new_tree.mining(new_pattern,min_sup)
+
+            patterns.append(conditional_patterns)
+
+        return patterns
+           
         #     # if so the cnew tree should be mined with the new pattern as  the stuff
         #     # # whatever you result should be added to the lsit of patterns
         #     # # i hope these kind of help🤔
-        # else:

@@ -32,8 +32,14 @@ def main():
         print("    Header table is " + str(tree_header))
       #  proj_tree = FPtree(tree_root, tree_header) # MO i dont need this because the projected tree method is changed
 
-        proj_tree = fp_tree.build_projected_tree(link, min_sup) # MO: since the projected tree makes a new tree instea dof passing it through main now i chnaged the aprameters
-        print(proj_tree)
+    proj_tree = fp_tree.build_projected_tree(link, min_sup) # MO: since the projected tree makes a new tree instea dof passing it through main now i chnaged the aprameters
+    print(proj_tree)
+    stuff=frozenset()
+    result= fp_tree.mining(stuff, min_sup)
+    print("The frequent patterns are : "+str( result ))
+
+
+
     
     # When I run this, nothing is printed, but no errors. Might have made a mistake in overriding __str__, 
     # could just check by adding print statements in build_table and build_tree, but I am busy for tonight
