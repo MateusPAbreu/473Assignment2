@@ -1,3 +1,4 @@
+# Data Mining Algorithm Implementation: FP-Growth
 # CPSC473_a2_Mojoma_Rockets
 This is a repository to track code changes for the FP-Growth Algorithm for frequent pattern mining on a transaction databases. It identifies frequent itemsets that meet a user indicated minimum support threshold. 
 
